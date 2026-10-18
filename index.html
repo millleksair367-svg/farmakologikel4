@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Farmakologi Kelompok 4</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX/CSV) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Supabase JS Client SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .sidebar-bg { background-color: #114c2b; }
+        .card-soft-green { background-color: #f0f7f4; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .view-section { display: none; }
+        .view-section.active { display: flex; }
+        /* Ilustrasi Obat Transparan di Latar Belakang Login */
+        .login-bg-illustration {
+            background-image: radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.15) 0%, transparent 40%),
+                              radial-gradient(circle at 80% 80%, rgba(5, 150, 105, 0.15) 0%, transparent 40%),
+                              url('https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=1000');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.98;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden">
+
+    <!-- ==================== HALAMAN LOGIN (FORM KOSONG) ==================== -->
+    <div id="auth-view" class="view-section active h-full w-full flex items-center justify-center login-bg-illustration p-4 relative">
+        <div class="absolute inset-0 bg-emerald-950/40 backdrop-blur-[2px] pointer-events-none"></div>
+
+        <div class="bg-white/95 backdrop-blur-md rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6 relative z-10 border border-emerald-100">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 bg-emerald-700 text-white rounded-2xl mx-auto flex items-center justify-center shadow-lg text-2xl relative">
+                    <i class="fa-solid fa-staff-snake"></i>
+                    <div class="absolute -right-2 -bottom-2 w-6 h-6 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center text-[10px] border border-white">
+                        <i class="fa-solid fa-pills"></i>
+                    </div>
+                </div>
+                <h1 class="text-xl font-bold text-gray-900">Sistem Informasi Farmakologi Kelompok 4</h1>
+                <p class="text-xs text-gray-500">Silakan masuk dengan akun terverifikasi untuk mengakses dashboard.</p>
+            </div>
+
+            <!-- Pesan Error / Sukses Auth -->
+            <div id="auth-alert" class="hidden p-3 rounded-xl text-xs font-medium"></div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Email Pengguna</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-xs">
+                            <i class="fa-solid fa-envelope"></i>
+                        </span>
+                        <input type="email" id="auth-email" value="" required placeholder="nama@email.com" class="w-full pl-9 pr-4 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-600 bg-gray-50">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Kata Sandi</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-xs">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="auth-password" value="" required placeholder="••••••••" class="w-full pl-9 pr-10 py-2.5 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-600 bg-gray-50">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 text-xs cursor-pointer">
+                            <i class="fa-solid fa-eye" id="eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs">
+                    <label class="flex items-center space-x-2 text-gray-600 cursor-pointer">
+                        <input type="checkbox" id="remember-me" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                        <span>Ingat saya</span>
+                    </label>
+                    <button type="button" onclick="handleForgotPassword()" class="text-emerald-700 hover:underline font-medium cursor-pointer">Lupa kata sandi?</button>
+                </div>
+
+                <button type="submit" id="login-btn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-md cursor-pointer flex items-center justify-center space-x-2">
+                    <span id="login-btn-text">Masuk</span>
+                    <i class="fa-solid fa-arrow-right-to-bracket" id="login-icon"></i>
+                </button>
+            </form>
+
+            <div class="text-center pt-2 border-t border-gray-100">
+                <p class="text-xs text-gray-500">Belum punya akun terdaftar? <button type="button" onclick="handleSignUp()" class="text-emerald-700 font-semibold hover:underline cursor-pointer">Daftar Akun Baru</button></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HALAMAN DASHBOARD UTAMA ==================== -->
+    <div id="dashboard-view" class="view-section h-full w-full flex overflow-hidden">
+        
+        <!-- SIDEBAR SEBELAH KIRI -->
+        <aside class="w-64 sidebar-bg text-white flex flex-col justify-between h-full fixed left-0 top-0 z-30 shadow-lg">
+            <div>
+                <!-- Logo & Title -->
+                <div class="p-5 flex items-center space-x-3 border-b border-emerald-800/40">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-emerald-800 shadow-md shrink-0">
+                        <i class="fa-solid fa-staff-snake text-xl"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="font-bold text-sm leading-tight tracking-wide">Farmakologi</h1>
+                        <p class="text-[11px] text-emerald-200 mt-0.5">Kelompok 4</p>
+                    </div>
+                </div>
+
+                <!-- Menu Navigation -->
+                <nav class="p-3 space-y-1.5 overflow-y-auto" id="sidebar-menu">
+                    <button onclick="switchTab('beranda')" data-target="beranda" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-medium shadow-sm transition text-left cursor-pointer">
+                        <i class="fa-solid fa-house w-5 text-center"></i>
+                        <span>Beranda</span>
+                    </button>
+                    <button onclick="switchTab('bank-obat')" data-target="bank-obat" class="nav-btn w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-emerald-100 hover:bg-emerald-800/60 transition text-left cursor-pointer">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-pills w-5 text-center"></i>
+                            <span>Bank Obat</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                    <button onclick="switchTab('materi')" data-target="materi" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-emerald-100 hover:bg-emerald-800/60 transition text-left cursor-pointer">
+                        <i class="fa-solid fa-book-open w-5 text-center"></i>
+                        <span>Materi</span>
+                    </button>
+                    <button onclick="switchTab('studi-kasus')" data-target="studi-kasus" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-emerald-100 hover:bg-emerald-800/60 transition text-left cursor-pointer">
+                        <i class="fa-solid fa-folder-open w-5 text-center"></i>
+                        <span>Studi Kasus</span>
+                    </button>
+                    <button onclick="switchTab('kuis')" data-target="kuis" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-emerald-100 hover:bg-emerald-800/60 transition text-left cursor-pointer">
+                        <i class="fa-solid fa-circle-question w-5 text-center"></i>
+                        <span>Kuis</span>
+                    </button>
+                    <button onclick="switchTab('tentang')" data-target="tentang" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl text-emerald-100 hover:bg-emerald-800/60 transition text-left cursor-pointer">
+                        <i class="fa-solid fa-circle-info w-5 text-center"></i>
+                        <span>Tentang</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer: User & Logout -->
+            <div class="p-3 space-y-2">
+                <div class="bg-emerald-900/60 border border-emerald-700/50 rounded-2xl p-3 flex items-center justify-between text-emerald-100">
+                    <div class="overflow-hidden pr-2">
+                        <div id="user-display-email" class="font-semibold text-xs truncate">kelompok4@farmakologi.com</div>
+                        <div class="text-[10px] text-emerald-300 flex items-center space-x-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Sinkronisasi Real-Time</span>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" title="Keluar" class="text-red-300 hover:text-white p-1.5 rounded-lg hover:bg-red-800/60 transition cursor-pointer">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col ml-64 h-full overflow-y-auto">
+            
+            <!-- HEADER BAGIAN ATAS -->
+            <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-20 shadow-xs">
+                <div id="header-greeting" class="text-xs font-semibold text-emerald-800">Halo, Kelompok 4 | Sistem Informasi &amp; Bank Data Obat Farmakologi</div>
+                <div id="live-clock" class="text-xs text-gray-500 font-medium">10:15:30</div>
+            </header>
+
+            <!-- KONTEN HALAMAN (TAB SYSTEM) -->
+            <main class="p-8 space-y-8 flex-1">
+
+                <!-- TAB 1: BERANDA -->
+                <div id="tab-beranda" class="tab-content active space-y-8">
+                    <!-- Banner Utama Beranda -->
+                    <section class="card-soft-green border border-emerald-100 rounded-3xl p-8 flex flex-col lg:flex-row items-center justify-between relative overflow-hidden shadow-xs">
+                        <div class="max-w-xl z-10 space-y-4">
+                            <h2 class="text-3xl font-bold text-gray-900">Selamat Datang di Dashboard Farmakologi!</h2>
+                            <p class="text-gray-600 text-sm leading-relaxed">
+                                Platform Rekam Medis &amp; Informasi Kesehatan (RMIK) Kelompok 4. Pantau statistik database obat, kategori klinis, dan aktivitas sinkronisasi antarperangkat secara langsung.
+                            </p>
+                            <div class="flex items-center space-x-3 pt-2">
+                                <button onclick="switchTab('bank-obat')" class="bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-5 py-2.5 rounded-xl text-sm flex items-center space-x-2 shadow-sm transition cursor-pointer">
+                                    <i class="fa-solid fa-pills"></i>
+                                    <span>Kelola Bank Obat</span>
+                                </button>
+                                <button onclick="switchTab('materi')" class="bg-white hover:bg-gray-50 text-emerald-700 border border-emerald-600 font-medium px-5 py-2.5 rounded-xl text-sm flex items-center space-x-2 transition shadow-xs cursor-pointer">
+                                    <i class="fa-solid fa-book-open"></i>
+                                    <span>Mulai Belajar</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-6 lg:mt-0 z-10">
+                            <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=500" alt="Farmakologi Ilustrasi" class="w-80 h-auto object-contain drop-shadow-md rounded-2xl">
+                        </div>
+                    </section>
+
+                    <!-- DASHBOARD FARMAKOLOGI: 4 KARTU STATISTIK UTAMA -->
+                    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Total Obat -->
+                        <div class="bg-white border border-gray-200/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-md transition">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                                        <i class="fa-solid fa-pills text-lg"></i>
+                                    </div>
+                                    <span class="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-100">Live DB</span>
+                                </div>
+                                <h3 class="text-xs text-gray-500 font-medium">Total Seluruh Obat</h3>
+                                <p id="dash-total-obat" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+                                <p class="text-[11px] text-gray-400 mt-1">Jumlah data obat tersimpan.</p>
+                            </div>
+                            <button onclick="switchTab('bank-obat')" class="mt-4 text-emerald-700 border border-emerald-600 hover:bg-emerald-50 font-medium text-xs py-2 px-4 rounded-xl text-center transition cursor-pointer">Lihat Tabel</button>
+                        </div>
+
+                        <!-- Kategori Obat Aktif -->
+                        <div class="bg-white border border-gray-200/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-md transition">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                                        <i class="fa-solid fa-layer-group text-lg"></i>
+                                    </div>
+                                    <span class="text-[10px] font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100">Kategori</span>
+                                </div>
+                                <h3 class="text-xs text-gray-500 font-medium">Kategori Aktif</h3>
+                                <p id="dash-total-kategori" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+                                <p class="text-[11px] text-gray-400 mt-1">Kelompok farmakologi unik.</p>
+                            </div>
+                            <button onclick="switchTab('bank-obat')" class="mt-4 text-blue-700 border border-blue-600 hover:bg-blue-50 font-medium text-xs py-2 px-4 rounded-xl text-center transition cursor-pointer">Filter Kategori</button>
+                        </div>
+
+                        <!-- Total Materi -->
+                        <div class="bg-white border border-gray-200/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-md transition">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                                        <i class="fa-solid fa-book-open text-lg"></i>
+                                    </div>
+                                    <span class="text-[10px] font-semibold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100">Materi</span>
+                                </div>
+                                <h3 class="text-xs text-gray-500 font-medium">Dokumen Pembelajaran</h3>
+                                <p id="dash-total-materi" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+                                <p class="text-[11px] text-gray-400 mt-1">Materi &amp; studi kasus aktif.</p>
+                            </div>
+                            <button onclick="switchTab('materi')" class="mt-4 text-amber-700 border border-amber-600 hover:bg-amber-50 font-medium text-xs py-2 px-4 rounded-xl text-center transition cursor-pointer">Buka Materi</button>
+                        </div>
+
+                        <!-- Status Sinkronisasi Real-Time -->
+                        <div class="bg-white border border-gray-200/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-md transition">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                                        <i class="fa-solid fa-wifi text-lg"></i>
+                                    </div>
+                                    <span class="text-[10px] font-semibold bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full border border-purple-100">Real-Time</span>
+                                </div>
+                                <h3 class="text-xs text-gray-500 font-medium">Sinkronisasi Perangkat</h3>
+                                <p class="text-sm font-bold text-emerald-700 mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Aktif &amp; Terhubung</p>
+                                <p class="text-[11px] text-gray-400 mt-1">Laptop, HP, &amp; Komputer.</p>
+                            </div>
+                            <div class="mt-4 text-xs font-medium text-purple-700 bg-purple-50 py-2 px-4 rounded-xl text-center">PostgreSQL / Supabase</div>
+                        </div>
+                    </section>
+
+                    <!-- GRID 11 KATEGORI FARMAKOLOGI -->
+                    <section class="card-soft-green border border-emerald-100 rounded-3xl p-6 space-y-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Kategori Farmakologi</h2>
+                            <p class="text-xs text-gray-600 mt-0.5">Pilih salah satu kategori di bawah untuk memfilter daftar obat dalam sistem.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="category-grid"></div>
+                    </section>
+                </div>
+
+                <!-- TAB 2: BANK OBAT -->
+                <div id="tab-bank-obat" class="tab-content space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Bank Data Obat Farmakologi</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Kelola data obat lengkap dengan dukungan impor multi-sheet Excel &amp; edit data per baris.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                            <input type="text" id="drug-search" placeholder="Cari nama obat, kategori..." onkeyup="filterDrugs()" class="px-4 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-600 w-full md:w-64">
+                            
+                            <label class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium px-4 py-2 rounded-xl cursor-pointer flex items-center space-x-2 transition shadow-xs">
+                                <i class="fa-solid fa-file-arrow-up"></i>
+                                <span>Impor Excel</span>
+                                <input type="file" id="import-file-input" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileImport(event)">
+                            </label>
+
+                            <button onclick="openManageColumnsModal()" class="bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200 text-xs font-medium px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition cursor-pointer" title="Hapus / Kelola Kolom">
+                                <i class="fa-solid fa-table-columns text-gray-500"></i>
+                                <span>Kelola Kolom</span>
+                            </button>
+
+                            <button onclick="openAddDrugModal()" class="bg-white border border-emerald-600 text-emerald-700 hover:bg-emerald-50 text-xs font-medium px-4 py-2 rounded-xl flex items-center space-x-2 transition cursor-pointer">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Tambah Obat</span>
+                            </button>
+
+                            <button onclick="deleteAllDrugs()" class="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-xs font-medium px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition cursor-pointer" title="Hapus Semua Data Obat">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>Hapus Semua</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabel Bank Obat -->
+                    <div class="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-xs flex flex-col">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse" id="drug-table">
+                                <thead class="bg-emerald-50 text-emerald-900 text-xs uppercase font-semibold border-b border-emerald-100" id="drug-table-head"></thead>
+                                <tbody class="divide-y divide-gray-100 text-xs text-gray-700" id="drug-table-body"></tbody>
+                            </table>
+                        </div>
+                        <div id="drug-empty-state" class="p-8 text-center text-gray-400 text-xs hidden">
+                            Belum ada data obat tersimpan. Silakan impor file Excel atau tambahkan data secara manual.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: MATERI -->
+                <div id="tab-materi" class="tab-content space-y-6">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Materi Pembelajaran</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Unggah dokumen materi (PDF/DOCX) atau tambahkan tautan sumber belajar.</p>
+                        </div>
+                        <button onclick="openAddModal('materi')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium px-4 py-2.5 rounded-xl flex items-center space-x-2 transition cursor-pointer">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Tambah Materi</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="materi-grid"></div>
+                    <div id="materi-empty" class="p-8 text-center text-gray-400 text-xs bg-white rounded-3xl border border-gray-200 hidden">
+                        Belum ada materi pembelajaran.
+                    </div>
+                </div>
+
+                <!-- TAB 4: STUDI KASUS -->
+                <div id="tab-studi-kasus" class="tab-content space-y-6">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Studi Kasus Farmakologi</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Unggah dokumen analisis studi kasus atau tautan eksternal.</p>
+                        </div>
+                        <button onclick="openAddModal('studi')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium px-4 py-2.5 rounded-xl flex items-center space-x-2 transition cursor-pointer">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Tambah Studi Kasus</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="studi-grid"></div>
+                    <div id="studi-empty" class="p-8 text-center text-gray-400 text-xs bg-white rounded-3xl border border-gray-200 hidden">
+                        Belum ada studi kasus.
+                    </div>
+                </div>
+
+                <!-- TAB 5: KUIS -->
+                <div id="tab-kuis" class="tab-content space-y-6">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Uji Pemahaman Kuis</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">Kerjakan kuis pilihan ganda dan unggah berkas soal kuis.</p>
+                        </div>
+                        <button onclick="openAddQuizModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium px-4 py-2.5 rounded-xl flex items-center space-x-2 transition cursor-pointer">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Buat Soal Kuis &amp; Berkas</span>
+                        </button>
+                    </div>
+
+                    <div id="quiz-container" class="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-6">
+                        <div id="quiz-list" class="space-y-4"></div>
+                        <div id="quiz-empty" class="p-8 text-center text-gray-400 text-xs">
+                            Belum ada kuis tersedia.
+                        </div>
+
+                        <!-- Hasil Kuis -->
+                        <div id="quiz-result-bottom" class="hidden p-6 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3 mt-6">
+                            <h4 class="font-bold text-emerald-900 text-sm flex items-center space-x-2">
+                                <i class="fa-solid fa-square-poll-vertical text-emerald-700 text-base"></i>
+                                <span>Hasil Evaluasi Nilai Kuis Anda</span>
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                <div class="bg-white p-3 rounded-xl border border-emerald-100">
+                                    <span class="text-gray-500 block">Nilai Pilihan Ganda:</span>
+                                    <span id="res-score" class="text-lg font-bold text-emerald-700">0 / 100</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-emerald-100">
+                                    <span class="text-gray-500 block">Jawaban Benar:</span>
+                                    <span id="res-correct" class="text-lg font-bold text-emerald-700">0 Soal</span>
+                                </div>
+                                <div class="bg-white p-3 rounded-xl border border-emerald-100">
+                                    <span class="text-gray-500 block">Catatan Penilaian:</span>
+                                    <span class="text-gray-700 font-medium">Tersinkronisasi ke server.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: TENTANG -->
+                <div id="tab-tentang" class="tab-content space-y-6">
+                    <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-xs max-w-3xl space-y-6">
+                        <div class="flex justify-between items-center border-b pb-4">
+                            <h2 class="text-xl font-bold text-gray-900">Tentang Sistem &amp; Kelompok</h2>
+                            <button onclick="enableAboutEdit()" class="bg-emerald-100 text-emerald-800 text-xs font-medium px-4 py-2 rounded-xl hover:bg-emerald-200 transition cursor-pointer">Edit Informasi</button>
+                        </div>
+                        <div id="about-display-view" class="space-y-4 text-xs text-gray-700">
+                            <div>
+                                <span class="font-semibold text-gray-900 block">Nama Kelompok:</span>
+                                <p id="view-kelompok" class="mt-1 text-gray-600">Farmakologi Kelompok 4</p>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-gray-900 block">Anggota Kelompok:</span>
+                                <ul id="view-anggota" class="list-disc list-inside mt-1 text-gray-600 space-y-1">
+                                    <li>Yohanes Alberio Eltiano Mepa - 20250306010</li>
+                                    <li>Marsha Adra Asri - 20250306011</li>
+                                    <li>Mildina Chasselda Leksair - 20250306019</li>
+                                    <li>Keysha - 20250306042</li>
+                                    <li>Chintya Wulandari - 20250306048</li>
+                                </ul>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <div>
+                                    <span class="font-semibold text-gray-900 block">Mata Kuliah:</span>
+                                    <p id="view-matkul" class="mt-1 text-gray-600">Farmakologi - Rekam Medis &amp; Informasi Kesehatan (RMIK)</p>
+                                </div>
+                                <div>
+                                    <span class="font-semibold text-gray-900 block">Dosen Pengampu:</span>
+                                    <p id="view-dosen" class="mt-1 text-gray-600 font-medium">Dr. apt. Tim Dosen Farmakologi, M.Farm.</p>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-gray-900 block">Deskripsi Sistem:</span>
+                                <p id="view-desc" class="mt-1 text-gray-600 leading-relaxed">Sistem Informasi &amp; Bank Data Obat Farmakologi Kelompok 4.</p>
+                            </div>
+                        </div>
+
+                        <!-- Form Edit Tentang -->
+                        <div id="about-edit-form" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700">Nama Kelompok</label>
+                                <input type="text" id="edit-kelompok" class="w-full mt-1 p-2 text-xs border rounded-xl">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700">Anggota Kelompok</label>
+                                <textarea id="edit-anggota" rows="4" class="w-full mt-1 p-2 text-xs border rounded-xl"></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700">Mata Kuliah</label>
+                                    <input type="text" id="edit-matkul" class="w-full mt-1 p-2 text-xs border rounded-xl">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700">Dosen Pengampu</label>
+                                    <input type="text" id="edit-dosen" class="w-full mt-1 p-2 text-xs border rounded-xl">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700">Deskripsi Sistem</label>
+                                <textarea id="edit-desc" rows="3" class="w-full mt-1 p-2 text-xs border rounded-xl"></textarea>
+                            </div>
+                            <div class="flex space-x-2 pt-2">
+                                <button onclick="saveAboutInfo()" class="bg-emerald-700 text-white text-xs font-medium px-4 py-2 rounded-xl cursor-pointer">Simpan Perubahan</button>
+                                <button onclick="cancelAboutEdit()" class="bg-gray-200 text-gray-700 text-xs font-medium px-4 py-2 rounded-xl cursor-pointer">Batal</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FOOTER -->
+                <footer class="text-center py-4 text-xs text-gray-400 border-t border-gray-200">
+                    Sistem Informasi &amp; Bank Data Obat &bull; Farmakologi Kelompok 4 &copy; 2026
+                </footer>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL KELOLA / HAPUS KOLOM TABEL -->
+    <div id="manage-columns-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-gray-900">Kelola Kolom Tabel Bank Obat</h3>
+                <button onclick="closeManageColumnsModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-gray-500">Pilih kolom yang ingin dihapus dari tampilan tabel:</p>
+            <div id="columns-list-container" class="space-y-2 max-h-60 overflow-y-auto pr-1 text-xs"></div>
+            <div class="flex justify-end space-x-2 pt-2 border-t">
+                <button onclick="closeManageColumnsModal()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs rounded-xl font-medium cursor-pointer">Selesai</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PEMBACA DETAIL DOKUMEN & BERKAS -->
+    <div id="reader-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-gray-900" id="reader-title">Detail Berkas &amp; Informasi</h3>
+                <button onclick="closeReaderModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="overflow-y-auto space-y-3 text-xs text-gray-700 flex-1 pr-1" id="reader-body"></div>
+            <div class="flex justify-between items-center pt-3 border-t">
+                <span id="reader-date" class="text-[11px] text-gray-400"></span>
+                <div class="space-x-2">
+                    <a id="reader-file-download" href="#" download class="px-4 py-2 bg-blue-600 text-white text-xs rounded-xl font-medium inline-block hidden"><i class="fa-solid fa-download mr-1"></i> Unduh Berkas</a>
+                    <a id="reader-link" href="#" target="_blank" class="px-4 py-2 bg-emerald-700 text-white text-xs rounded-xl font-medium inline-block hidden">Tautan Eksternal</a>
+                    <button onclick="closeReaderModal()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs rounded-xl font-medium cursor-pointer">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH / EDIT OBAT MANUAL -->
+    <div id="drug-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-900" id="drug-modal-title">Tambah Data Obat Baru</h3>
+            <div id="drug-form-fields" class="space-y-3"></div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeAddDrugModal()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs rounded-xl font-medium cursor-pointer">Batal</button>
+                <button onclick="saveManualDrug()" class="px-4 py-2 bg-emerald-700 text-white text-xs rounded-xl font-medium cursor-pointer">Simpan Obat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH MATERI / STUDI KASUS -->
+    <div id="generic-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-900" id="generic-modal-title">Tambah Konten</h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Judul Informasi</label>
+                    <input type="text" id="gen-title" class="w-full p-2 border rounded-xl" placeholder="Masukkan judul...">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Deskripsi / Ringkasan</label>
+                    <textarea id="gen-desc" rows="3" class="w-full p-2 border rounded-xl" placeholder="Masukkan deskripsi..."></textarea>
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Tautan URL Eksternal (Opsional)</label>
+                    <input type="url" id="gen-url" placeholder="https://..." class="w-full p-2 border rounded-xl">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Unggah Berkas (PDF, DOCX, PPTX, gambar)</label>
+                    <input type="file" id="gen-file" class="w-full text-xs">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeGenericModal()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs rounded-xl font-medium cursor-pointer">Batal</button>
+                <button onclick="saveGenericContent()" class="px-4 py-2 bg-emerald-700 text-white text-xs rounded-xl font-medium cursor-pointer">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH KUIS -->
+    <div id="quiz-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-900">Buat Soal Kuis &amp; Berkas</h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Judul Kuis</label>
+                    <input type="text" id="qz-title" class="w-full p-2 border rounded-xl" placeholder="Judul kuis...">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Pertanyaan Pilihan Ganda</label>
+                    <input type="text" id="qz-q1" class="w-full p-2 border rounded-xl" placeholder="Pertanyaan...">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Pilihan A</label>
+                    <input type="text" id="qz-optA" class="w-full p-2 border rounded-xl" placeholder="Opsi A...">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Pilihan B (Kunci Jawaban Benar)</label>
+                    <input type="text" id="qz-optB" class="w-full p-2 border rounded-xl" placeholder="Opsi B...">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Unggah Berkas Soal / Pendukung Kuis</label>
+                    <input type="file" id="qz-file" class="w-full text-xs">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeQuizModal()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs rounded-xl font-medium cursor-pointer">Batal</button>
+                <button onclick="saveQuizContent()" class="px-4 py-2 bg-emerald-700 text-white text-xs rounded-xl font-medium cursor-pointer">Simpan Kuis</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT & INTEGRASI SUPABASE REAL-TIME -->
+    <script>
+        // KONFIGURASI SUPABASE
+        const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        let supabaseClient = null;
+        try {
+            if (SUPABASE_URL !== 'https://YOUR_PROJECT_ID.supabase.co') {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch(e) { console.warn("Supabase initialization warning:", e); }
+
+        // KAMUS FARMAKOLOGI CERDAS
+        const pharmacologyKnowledgeBase = {
+            "paracetamol": { gmd: "Generik", diagnosis: "Nyeri Ringan-Sedang & Demam", kategori: "Antiinflamasi & Analgesik", sediaan: "Tablet 500 mg", dosis: "3 x 500 mg / hari", kodekfa: "KFA-9012", merk: "Sanmol / Panadol", unit: "Strip @ 10 Tablet" },
+            "amoxicillin": { gmd: "Generik", diagnosis: "Infeksi Saluran Napas & Bakteri", kategori: "Antimikroba", sediaan: "Kapsul 500 mg", dosis: "3 x 500 mg / hari", kodekfa: "KFA-4421", merk: "Amoxsan", unit: "Strip @ 10 Kapsul" },
+            "metformin": { gmd: "Generik", diagnosis: "Diabetes Melitus Tipe 2", kategori: "Endokrin", sediaan: "Tablet 500 mg", dosis: "2 x 500 mg sesudah makan", kodekfa: "KFA-3312", merk: "Glucophage", unit: "Strip @ 10 Tablet" },
+            "amlodipine": { gmd: "Generik", diagnosis: "Hipertensi & Angina Pektoris", kategori: "Kardiovaskular", sediaan: "Tablet 5 mg", dosis: "1 x 5 mg / hari", kodekfa: "KFA-1109", merk: "Norvasc", unit: "Strip @ 10 Tablet" },
+            "ibuprofen": { gmd: "Generik", diagnosis: "Nyeri Sendi & Inflamasi", kategori: "Antiinflamasi & Analgesik", sediaan: "Tablet 400 mg", dosis: "3 x 400 mg sesudah makan", kodekfa: "KFA-5564", merk: "Proris", unit: "Strip @ 10 Tablet" },
+            "omeprazole": { gmd: "Generik", diagnosis: "Gastritis & Tukak Lambung", kategori: "Gastrointestinal", sediaan: "Kapsul 20 mg", dosis: "1 x 20 mg sebelum makan", kodekfa: "KFA-7782", merk: "Losec", unit: "Blister @ 10 Kapsul" }
+        };
+
+        // 11 KATEGORI FARMAKOLOGI
+        const categoriesData = [
+            { id: 1, name: "Kardiovaskular", icon: "fa-heart-pulse" },
+            { id: 2, name: "Respirasi", icon: "fa-lungs" },
+            { id: 3, name: "Gastrointestinal", icon: "fa-pills" },
+            { id: 4, name: "Sistem Saraf", icon: "fa-brain" },
+            { id: 5, name: "Antiinflamasi & Analgesik", icon: "fa-capsules" },
+            { id: 6, name: "Antimikroba", icon: "fa-shield-virus" },
+            { id: 7, name: "Endokrin", icon: "fa-droplet" },
+            { id: 8, name: "Onkologi", icon: "fa-ribbon" },
+            { id: 9, name: "Pediatri", icon: "fa-child" },
+            { id: 10, name: "Obstetri & Ginekologi", icon: "fa-person-pregnant" },
+            { id: 11, name: "Alergi & Imunologi", icon: "fa-shield-heart" }
+        ];
+
+        let drugsData = JSON.parse(localStorage.getItem('pharmacology_drugs')) || [
+            { "Nama Obat": "Amoksisilin", "G/MD": "Generik", "Diagnosis": "Infeksi Bakteri", "Kategori": "Antimikroba", "Bentuk Sediaan": "Kapsul 500 mg", "Dosis": "3 x 500 mg" },
+            { "Nama Obat": "Amlodipin", "G/MD": "Generik", "Diagnosis": "Hipertensi", "Kategori": "Kardiovaskular", "Bentuk Sediaan": "Tablet 5 mg", "Dosis": "1 x 5 mg" },
+            { "Nama Obat": "Metformin", "G/MD": "Generik", "Diagnosis": "Diabetes Melitus Tipe 2", "Kategori": "Endokrin", "Bentuk Sediaan": "Tablet 500 mg", "Dosis": "2 x 500 mg" },
+            { "Nama Obat": "Parasetamol", "G/MD": "Generik", "Diagnosis": "Demam & Nyeri", "Kategori": "Antiinflamasi & Analgesik", "Bentuk Sediaan": "Tablet 500 mg", "Dosis": "3 x 500 mg" }
+        ];
+
+        // Bersihkan kolom penyimpan awal dari '__EMPTY'
+        let rawColumns = JSON.parse(localStorage.getItem('pharmacology_columns')) || ["No", "Nama Obat", "G/MD", "Diagnosis", "Kategori", "Bentuk Sediaan", "Dosis"];
+        let dynamicColumns = rawColumns.filter(c => c && !c.startsWith('__EMPTY'));
+
+        let materiList = JSON.parse(localStorage.getItem('pharmacology_materi')) || [];
+        let studiList = JSON.parse(localStorage.getItem('pharmacology_studi')) || [];
+        let quizList = JSON.parse(localStorage.getItem('pharmacology_quiz')) || [];
+
+        let currentActiveTab = 'beranda';
+        let activeGenericType = '';
+        let editingIndex = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            setInterval(updateClock, 1000);
+            renderCategories();
+            
+            // Inisialisasi Sinkronisasi Real-Time & Cek Sesi
+            if (supabaseClient) {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session && session.user) {
+                        onLoginSuccess(session.user.email);
+                    } else {
+                        const localUser = localStorage.getItem('pharmacology_user');
+                        if (localUser) { onLoginSuccess(localUser); } else { showAuthView(); }
+                    }
+                    
+                    supabaseClient
+                        .channel('bank-obat-realtime-channel')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'obat' }, async (payload) => {
+                            await fetchRemoteDatabaseDrugs();
+                        })
+                        .subscribe();
+
+                    await fetchRemoteDatabaseDrugs();
+                } catch(e) {
+                    console.warn("Supabase connection warning:", e);
+                    checkLocalAuth();
+                }
+            } else {
+                checkLocalAuth();
+            }
+        });
+
+        function checkLocalAuth() {
+            const localUser = localStorage.getItem('pharmacology_user');
+            if (localUser) {
+                onLoginSuccess(localUser);
+            } else {
+                showAuthView();
+            }
+        }
+
+        async function fetchRemoteDatabaseDrugs() {
+            if (!supabaseClient) return;
+            try {
+                const { data, error } = await supabaseClient.from('obat').select('*');
+                if (!error && data && data.length > 0) {
+                    drugsData = data;
+                    renderDrugsTable();
+                    updateDashboardMetrics();
+                }
+            } catch(err) { console.error("Error fetching remote database:", err); }
+        }
+
+        async function syncDrugToSupabase(actionType, drugPayload, queryId = null) {
+            if (!supabaseClient) return;
+            try {
+                if (actionType === 'INSERT') {
+                    await supabaseClient.from('obat').insert([drugPayload]);
+                } else if (actionType === 'UPDATE') {
+                    if (queryId) {
+                        await supabaseClient.from('obat').update(drugPayload).eq('id', queryId);
+                    }
+                } else if (actionType === 'DELETE') {
+                    if (queryId) {
+                        await supabaseClient.from('obat').delete().eq('id', queryId);
+                    }
+                }
+            } catch(err) { console.error("Supabase sync error:", err); }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) clockEl.textContent = now.toTimeString().split(' ')[0];
+        }
+
+        // PEMBARUAN METRIK DASHBOARD FARMASI DI BERANDA
+        function updateDashboardMetrics() {
+            const totalObatEl = document.getElementById('dash-total-obat');
+            const totalKatEl = document.getElementById('dash-total-kategori');
+            const totalMatEl = document.getElementById('dash-total-materi');
+
+            if (totalObatEl) totalObatEl.textContent = drugsData.length;
+
+            const uniqueCategories = new Set();
+            drugsData.forEach(d => {
+                let kat = d["Kategori"] || d["Golongan Farmakologi"] || d["Kelompok Diagnosis"] || "Umum";
+                uniqueCategories.add(kat.trim());
+            });
+            if (totalKatEl) totalKatEl.textContent = uniqueCategories.size;
+            if (totalMatEl) totalMatEl.textContent = materiList.length + studiList.length;
+        }
+
+        // VIEW & AUTH
+        function showAuthView() {
+            document.getElementById('auth-view').classList.add('active');
+            document.getElementById('dashboard-view').classList.remove('active');
+        }
+
+        function showDashboardView() {
+            document.getElementById('auth-view').classList.remove('active');
+            document.getElementById('dashboard-view').classList.add('active');
+            renderDrugsTable();
+            renderMateri();
+            renderStudiKasus();
+            renderQuizList();
+            loadAboutData();
+            updateDashboardMetrics();
+        }
+
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('auth-password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                pwdInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        function showAuthAlert(msg, isError = true) {
+            const alertBox = document.getElementById('auth-alert');
+            alertBox.textContent = msg;
+            alertBox.className = `p-3 rounded-xl text-xs font-medium ${isError ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`;
+            alertBox.classList.remove('hidden');
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const btn = document.getElementById('login-btn');
+            const btnText = document.getElementById('login-btn-text');
+            const icon = document.getElementById('login-icon');
+
+            btn.disabled = true;
+            btnText.textContent = 'Memproses...';
+            icon.className = 'fa-solid fa-spinner fa-spin';
+
+            try {
+                if (supabaseClient) {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    onLoginSuccess(data.user.email);
+                } else {
+                    if (email && password.length >= 6) {
+                        localStorage.setItem('pharmacology_user', email);
+                        onLoginSuccess(email);
+                    } else {
+                        throw new Error("Email atau kata sandi tidak valid.");
+                    }
+                }
+            } catch (err) {
+                showAuthAlert(err.message || "Gagal masuk. Periksa kembali akun atau koneksi Anda.");
+                btn.disabled = false;
+                btnText.textContent = 'Masuk';
+                icon.className = 'fa-solid fa-arrow-right-to-bracket';
+            }
+        }
+
+        async function handleSignUp() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if (!email || password.length < 6) {
+                showAuthAlert("Masukkan email dan kata sandi minimal 6 karakter.");
+                return;
+            }
+
+            try {
+                if (supabaseClient) {
+                    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                    if (error) throw error;
+                    showAuthAlert("Pendaftaran berhasil! Silakan masuk.", false);
+                } else {
+                    localStorage.setItem('pharmacology_user', email);
+                    onLoginSuccess(email);
+                }
+            } catch (err) {
+                showAuthAlert(err.message || "Pendaftaran gagal.");
+            }
+        }
+
+        async function handleForgotPassword() {
+            const email = document.getElementById('auth-email').value.trim();
+            if (!email) { showAuthAlert("Masukkan email terlebih dahulu pada kolom email."); return; }
+            if (supabaseClient) {
+                const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+                if (error) { showAuthAlert(error.message); return; }
+            }
+            showAuthAlert("Tautan pemulihan kata sandi telah dikirim.", false);
+        }
+
+        function onLoginSuccess(email) {
+            document.getElementById('user-display-email').textContent = email;
+            const namePart = email.split('@')[0];
+            const capitalized = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+            document.getElementById('header-greeting').textContent = `Halo, ${capitalized} | Sistem Informasi & Bank Data Obat Farmakologi`;
+            showDashboardView();
+        }
+
+        async function handleLogout() {
+            if (supabaseClient) { await supabaseClient.auth.signOut(); }
+            localStorage.removeItem('pharmacology_user');
+            showAuthView();
+        }
+
+        // NAVIGASI & TAB
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-600', 'text-white');
+                btn.classList.add('text-emerald-100');
+            });
+            
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if (targetTab) targetTab.classList.add('active');
+
+            const targetBtn = document.querySelector(`[data-target="${tabId}"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('bg-emerald-600', 'text-white');
+                targetBtn.classList.remove('text-emerald-100');
+            }
+            currentActiveTab = tabId;
+            window.scrollTo(0, 0);
+        }
+
+        function renderCategories() {
+            const grid = document.getElementById('category-grid');
+            if (!grid) return;
+            grid.innerHTML = categoriesData.map(cat => `
+                <div onclick="filterByCategory('${cat.name}')" class="bg-white border border-emerald-200 rounded-2xl p-4 flex flex-col items-center text-center relative hover:shadow-md transition group cursor-pointer">
+                    <div class="text-emerald-700 my-3 text-3xl group-hover:scale-110 transition">
+                        <i class="fa-solid ${cat.icon}"></i>
+                    </div>
+                    <span class="text-xs font-semibold text-gray-800">${cat.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function filterByCategory(catName) {
+            switchTab('bank-obat');
+            document.getElementById('drug-search').value = catName;
+            filterDrugs();
+        }
+
+        function getSmartDetail(drugName, colName) {
+            const clean = drugName.toLowerCase().trim();
+            for (let key in pharmacologyKnowledgeBase) {
+                if (clean.includes(key)) {
+                    const info = pharmacologyKnowledgeBase[key];
+                    if (colName.toLowerCase().includes('kode')) return info.kodekfa;
+                    if (colName.toLowerCase().includes('merk')) return info.merk;
+                    if (colName.toLowerCase().includes('unit')) return info.unit;
+                    if (colName.toLowerCase().includes('g/md') || colName.toLowerCase().includes('golongan')) return info.gmd;
+                    if (colName.toLowerCase().includes('diagnosis')) return info.diagnosis;
+                    if (colName.toLowerCase().includes('kategori')) return info.kategori;
+                    if (colName.toLowerCase().includes('sediaan')) return info.sediaan;
+                    if (colName.toLowerCase().includes('dosis')) return info.dosis;
+                }
+            }
+            if (colName.toLowerCase().includes('kode')) return 'KFA-9900';
+            if (colName.toLowerCase().includes('merk')) return 'Branded Med';
+            if (colName.toLowerCase().includes('unit')) return 'Box @ 10 Strip';
+            if (colName.toLowerCase().includes('diagnosis')) return 'Terapi Medis Umum';
+            if (colName.toLowerCase().includes('kategori')) return 'Antiinflamasi & Analgesik';
+            if (colName.toLowerCase().includes('sediaan')) return 'Tablet 500 mg';
+            if (colName.toLowerCase().includes('dosis')) return '3 x 1 Tablet';
+            return 'Generik';
+        }
+
+        // BANK OBAT
+        function renderDrugsTable() {
+            const thead = document.getElementById('drug-table-head');
+            const tbody = document.getElementById('drug-table-body');
+            const emptyState = document.getElementById('drug-empty-state');
+            if (!thead || !tbody) return;
+
+            // Bersihkan dari kolom kosong '__EMPTY'
+            dynamicColumns = dynamicColumns.filter(c => c && !c.startsWith('__EMPTY'));
+
+            drugsData.sort((a, b) => {
+                const nameA = (a["Nama Obat"] || a["Nama Produk"] || "").toLowerCase();
+                const nameB = (b["Nama Obat"] || b["Nama Produk"] || "").toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+
+            if (!dynamicColumns.includes("No")) dynamicColumns.unshift("No");
+
+            thead.innerHTML = `<tr>` + dynamicColumns.map(col => `<th class="px-4 py-3">${col}</th>`).join('') + `<th class="px-4 py-3 text-right">Aksi</th></tr>`;
+
+            if (drugsData.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                updateDashboardMetrics();
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            tbody.innerHTML = drugsData.map((drug, idx) => {
+                drug["No"] = idx + 1;
+                return `
+                    <tr class="hover:bg-emerald-50/50 transition">
+                        ` + dynamicColumns.map(col => `<td class="px-4 py-3">${drug[col] || '-'}</td>`).join('') + `
+                        <td class="px-4 py-3 text-right space-x-1">
+                            <button onclick="openEditDrugModal(${idx})" title="Edit" class="text-blue-600 hover:text-blue-800 p-1 cursor-pointer"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteDrug(${idx})" title="Hapus" class="text-red-500 hover:text-red-700 p-1 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            localStorage.setItem('pharmacology_drugs', JSON.stringify(drugsData));
+            localStorage.setItem('pharmacology_columns', JSON.stringify(dynamicColumns));
+            updateDashboardMetrics();
+        }
+
+        function filterDrugs() {
+            const keyword = document.getElementById('drug-search').value.toLowerCase();
+            document.querySelectorAll('#drug-table-body tr').forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(keyword) ? '' : 'none';
+            });
+        }
+
+        // KELOLA / HAPUS KOLOM TABEL
+        function openManageColumnsModal() {
+            const container = document.getElementById('columns-list-container');
+            const deletableCols = dynamicColumns.filter(c => c !== 'No');
+            
+            if (deletableCols.length === 0) {
+                container.innerHTML = `<p class="text-gray-400">Tidak ada kolom yang dapat dihapus.</p>`;
+            } else {
+                container.innerHTML = deletableCols.map(col => `
+                    <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-200">
+                        <span class="font-medium text-gray-800">${col}</span>
+                        <button onclick="removeColumn('${col}')" class="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium cursor-pointer">
+                            <i class="fa-solid fa-trash mr-1"></i> Hapus
+                        </button>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('manage-columns-modal').classList.remove('hidden');
+        }
+
+        function closeManageColumnsModal() {
+            document.getElementById('manage-columns-modal').classList.add('hidden');
+        }
+
+        function removeColumn(colName) {
+            if (confirm(`Apakah Anda yakin ingin menghapus kolom "${colName}" dari tabel?`)) {
+                dynamicColumns = dynamicColumns.filter(c => c !== colName);
+                // Bersihkan properti dari seluruh objek data obat
+                drugsData.forEach(d => { delete d[colName]; });
+                renderDrugsTable();
+                openManageColumnsModal();
+            }
+        }
+
+        // HAPUS SEMUA DATA OBAT
+        async function deleteAllDrugs() {
+            if (drugsData.length === 0) {
+                alert('Tabel Bank Obat sudah kosong.');
+                return;
+            }
+            if (confirm('APAKAH ANDA YAKIN INGIN MENGHAPUS SELURUH DATA OBAT?\nTindakan ini akan mengosongkan Bank Obat sepenuhnya.')) {
+                if (supabaseClient) {
+                    try {
+                        for (const drug of drugsData) {
+                            if (drug.id) await syncDrugToSupabase('DELETE', null, drug.id);
+                        }
+                    } catch(e) { console.error("Gagal menghapus data dari Supabase:", e); }
+                }
+                drugsData = [];
+                renderDrugsTable();
+                alert('Seluruh data obat telah berhasil dihapus!');
+            }
+        }
+
+        // TAMBAH & EDIT OBAT MANUAL
+        function openAddDrugModal() {
+            editingIndex = null;
+            document.getElementById('drug-modal-title').textContent = 'Tambah Data Obat Baru';
+            const container = document.getElementById('drug-form-fields');
+            const filteredCols = dynamicColumns.filter(c => c !== "No");
+            container.innerHTML = filteredCols.map(col => `
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">${col}</label>
+                    <input type="text" id="input-col-${col}" class="w-full p-2 border rounded-xl text-xs" placeholder="Masukkan ${col.toLowerCase()}...">
+                </div>
+            `).join('');
+            document.getElementById('drug-modal').classList.remove('hidden');
+        }
+
+        function openEditDrugModal(idx) {
+            editingIndex = idx;
+            document.getElementById('drug-modal-title').textContent = 'Edit Data Obat';
+            const drug = drugsData[idx];
+            const container = document.getElementById('drug-form-fields');
+            const filteredCols = dynamicColumns.filter(c => c !== "No");
+            container.innerHTML = filteredCols.map(col => `
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">${col}</label>
+                    <input type="text" id="input-col-${col}" value="${drug[col] || ''}" class="w-full p-2 border rounded-xl text-xs" placeholder="Masukkan ${col.toLowerCase()}...">
+                </div>
+            `).join('');
+            document.getElementById('drug-modal').classList.remove('hidden');
+        }
+
+        function closeAddDrugModal() { 
+            document.getElementById('drug-modal').classList.add('hidden'); 
+            editingIndex = null;
+        }
+
+        async function saveManualDrug() {
+            let newObj = {};
+            let nameVal = '';
+            const filteredCols = dynamicColumns.filter(c => c !== "No");
+            
+            const nameEl = document.getElementById(`input-col-Nama Obat`) || document.getElementById(`input-col-Nama Produk`);
+            nameVal = nameEl ? nameEl.value.trim() : '';
+            if(!nameVal) { alert('Nama Obat wajib diisi!'); return; }
+
+            filteredCols.forEach(col => {
+                const el = document.getElementById(`input-col-${col}`);
+                let val = el ? el.value.trim() : '';
+                if(!val && col.toLowerCase().includes('nama')) val = nameVal;
+                if(!val) val = getSmartDetail(nameVal, col);
+                newObj[col] = val;
+            });
+            if(newObj["Nama Obat"]) newObj["Nama Obat"] = nameVal;
+            if(newObj["Nama Produk"]) newObj["Nama Produk"] = nameVal;
+
+            if (editingIndex !== null) {
+                drugsData[editingIndex] = newObj;
+                await syncDrugToSupabase('UPDATE', newObj, drugsData[editingIndex].id);
+                alert('Data obat berhasil diperbarui!');
+            } else {
+                const isDuplicate = drugsData.some(d => (d["Nama Obat"] || d["Nama Produk"] || "").toLowerCase() === nameVal.toLowerCase());
+                if(isDuplicate) {
+                    alert(`Obat "${nameVal}" sudah terdaftar dalam sistem!`);
+                    return;
+                }
+                drugsData.push(newObj);
+                await syncDrugToSupabase('INSERT', newObj);
+                alert('Obat baru berhasil ditambahkan!');
+            }
+
+            renderDrugsTable();
+            closeAddDrugModal();
+        }
+
+        async function deleteDrug(idx) {
+            if(confirm('Hapus data obat ini?')) {
+                const target = drugsData[idx];
+                drugsData.splice(idx, 1);
+                if (target && target.id) {
+                    await syncDrugToSupabase('DELETE', null, target.id);
+                }
+                renderDrugsTable();
+            }
+        }
+
+        // IMPOR EXCEL OTOMATIS (MENGABAIKAN KOLOM KOSONG '__EMPTY')
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    for (const sheetName of workbook.SheetNames) {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const json = XLSX.utils.sheet_to_json(worksheet);
+                        if(json.length === 0) continue;
+
+                        Object.keys(json[0]).forEach(k => {
+                            let cleanKey = k.trim();
+                            let lk = cleanKey.toLowerCase();
+                            // Abaikan kolom berawalan __EMPTY atau tanpa nama
+                            if(!cleanKey.startsWith('__EMPTY') && !lk.includes('no') && !lk.includes('no.')) {
+                                if(!dynamicColumns.some(c => c.toLowerCase() === lk)) {
+                                    dynamicColumns.push(cleanKey);
+                                }
+                            }
+                        });
+
+                        for (const row of json) {
+                            let nameKey = Object.keys(row).find(k => !k.startsWith('__EMPTY') && (k.toLowerCase().includes('nama') || k.toLowerCase().includes('obat') || k.toLowerCase().includes('produk')));
+                            if(!nameKey) continue;
+                            let nameVal = String(row[nameKey]).trim();
+                            if(!nameVal) continue;
+
+                            let existingIndex = drugsData.findIndex(d => (d["Nama Obat"] || d["Nama Produk"] || "").toLowerCase() === nameVal.toLowerCase());
+
+                            if(existingIndex !== -1) {
+                                Object.keys(row).forEach(k => {
+                                    let cleanKey = k.trim();
+                                    if (cleanKey.startsWith('__EMPTY')) return; // Abaikan
+                                    let colMatch = dynamicColumns.find(c => c.toLowerCase() === cleanKey.toLowerCase());
+                                    if(colMatch && row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== "") {
+                                        drugsData[existingIndex][colMatch] = row[k];
+                                    }
+                                });
+                                await syncDrugToSupabase('UPDATE', drugsData[existingIndex], drugsData[existingIndex].id);
+                            } else {
+                                let formattedRow = {};
+                                dynamicColumns.forEach(col => {
+                                    if(col === "No" || col.startsWith('__EMPTY')) return;
+                                    let matchingKey = Object.keys(row).find(k => !k.startsWith('__EMPTY') && k.trim().toLowerCase() === col.toLowerCase());
+                                    let val = matchingKey ? row[matchingKey] : '';
+                                    if(!val) val = getSmartDetail(nameVal, col);
+                                    formattedRow[col] = val;
+                                });
+                                if(formattedRow["Nama Obat"]) formattedRow["Nama Obat"] = nameVal;
+                                if(formattedRow["Nama Produk"]) formattedRow["Nama Produk"] = nameVal;
+                                drugsData.push(formattedRow);
+                                await syncDrugToSupabase('INSERT', formattedRow);
+                            }
+                        }
+                    }
+
+                    renderDrugsTable();
+                    alert(`Impor Excel berhasil dari seluruh sheet pada berkas ${file.name}!`);
+                } catch(err) {
+                    alert("Gagal membaca file Excel.");
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // MANAJEMEN MATERI, STUDI KASUS, KUIS, TENTANG
+        function openAddModal(type) {
+            activeGenericType = type;
+            document.getElementById('generic-modal-title').textContent = type === 'materi' ? 'Tambah Materi (Berkas & Tautan)' : 'Tambah Studi Kasus (Berkas & Tautan)';
+            document.getElementById('gen-title').value = '';
+            document.getElementById('gen-desc').value = '';
+            document.getElementById('gen-url').value = '';
+            document.getElementById('gen-file').value = '';
+            document.getElementById('generic-modal').classList.remove('hidden');
+        }
+
+        function closeGenericModal() { document.getElementById('generic-modal').classList.add('hidden'); }
+
+        async function saveGenericContent() {
+            const title = document.getElementById('gen-title').value.trim();
+            const desc = document.getElementById('gen-desc').value.trim();
+            const url = document.getElementById('gen-url').value.trim();
+            const fileInput = document.getElementById('gen-file');
+            
+            if(!title) { alert('Judul wajib diisi!'); return; }
+
+            let fileData = null;
+            let fileName = null;
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileName = file.name;
+                fileData = await readFileAsBase64(file);
+            }
+
+            const newItem = { 
+                id: Date.now(), 
+                title, 
+                desc, 
+                url: url || '#', 
+                fileName: fileName || null, 
+                fileData: fileData || null,
+                date: new Date().toLocaleDateString('id-ID') 
+            };
+
+            if(activeGenericType === 'materi') {
+                materiList.push(newItem);
+                localStorage.setItem('pharmacology_materi', JSON.stringify(materiList));
+                renderMateri();
+            } else {
+                studiList.push(newItem);
+                localStorage.setItem('pharmacology_studi', JSON.stringify(studiList));
+                renderStudiKasus();
+            }
+            closeGenericModal();
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderMateri() {
+            const grid = document.getElementById('materi-grid');
+            const empty = document.getElementById('materi-empty');
+            if(!grid) return;
+            if(materiList.length === 0) { grid.innerHTML = ''; empty.classList.remove('hidden'); updateDashboardMetrics(); return; }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = materiList.map((item, idx) => `
+                <div class="bg-white border rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:border-emerald-600 transition cursor-pointer" onclick="openReaderModalContent(${idx}, 'materi')">
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-sm mb-1">${item.title}</h3>
+                        <p class="text-xs text-gray-500">${item.desc}</p>
+                        ${item.fileName ? `<div class="mt-3 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg inline-block"><i class="fa-solid fa-file-arrow-down mr-1"></i> \${item.fileName}</div>` : ''}
+                    </div>
+                    <div class="pt-3 border-t mt-4 flex justify-between items-center" onclick="event.stopPropagation()">
+                        <span class="text-xs font-semibold text-emerald-800">Detail &amp; Berkas</span>
+                        <button onclick="deleteMateri(${idx})" class="text-red-500 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            updateDashboardMetrics();
+        }
+
+        function renderStudiKasus() {
+            const grid = document.getElementById('studi-grid');
+            const empty = document.getElementById('studi-empty');
+            if(!grid) return;
+            if(studiList.length === 0) { grid.innerHTML = ''; empty.classList.remove('hidden'); updateDashboardMetrics(); return; }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = studiList.map((item, idx) => `
+                <div class="bg-white border rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:border-emerald-600 transition cursor-pointer" onclick="openReaderModalContent(${idx}, 'studi')">
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-sm mb-1">${item.title}</h3>
+                        <p class="text-xs text-gray-500">${item.desc}</p>
+                        ${item.fileName ? `<div class="mt-3 text-[11px] font-medium text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-lg inline-block"><i class="fa-solid fa-file-arrow-down mr-1"></i> \${item.fileName}</div>` : ''}
+                    </div>
+                    <div class="pt-3 border-t mt-4 flex justify-between items-center" onclick="event.stopPropagation()">
+                        <span class="text-xs font-semibold text-amber-800">Detail &amp; Berkas</span>
+                        <button onclick="deleteStudi(${idx})" class="text-red-500 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            updateDashboardMetrics();
+        }
+
+        function openReaderModalContent(idx, type) {
+            const item = type === 'materi' ? materiList[idx] : studiList[idx];
+            if(!item) return;
+
+            document.getElementById('reader-title').textContent = item.title;
+            document.getElementById('reader-body').innerHTML = `
+                <div class="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 text-gray-800 font-normal leading-relaxed">
+                    ${item.desc || 'Tidak ada deskripsi rinci.'}
+                </div>
+                ${item.fileName ? `
+                    <div class="p-3 bg-gray-50 border rounded-xl flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-700"><i class="fa-solid fa-paperclip mr-2 text-emerald-700"></i> \${item.fileName}</span>
+                    </div>
+                ` : ''}
+            `;
+            document.getElementById('reader-date').textContent = 'Ditambahkan: ' + (item.date || 'Baru Saja');
+
+            const downloadBtn = document.getElementById('reader-file-download');
+            if (item.fileData) {
+                downloadBtn.href = item.fileData;
+                downloadBtn.download = item.fileName || 'berkas-farmakologi';
+                downloadBtn.classList.remove('hidden');
+            } else {
+                downloadBtn.classList.add('hidden');
+            }
+
+            const linkBtn = document.getElementById('reader-link');
+            if (item.url && item.url !== '#') {
+                linkBtn.href = item.url;
+                linkBtn.classList.remove('hidden');
+            } else {
+                linkBtn.classList.add('hidden');
+            }
+
+            document.getElementById('reader-modal').classList.remove('hidden');
+        }
+
+        function closeReaderModal() { document.getElementById('reader-modal').classList.add('hidden'); }
+
+        function deleteMateri(idx) { materiList.splice(idx,1); localStorage.setItem('pharmacology_materi', JSON.stringify(materiList)); renderMateri(); }
+        function deleteStudi(idx) { studiList.splice(idx,1); localStorage.setItem('pharmacology_studi', JSON.stringify(studiList)); renderStudiKasus(); }
+
+        // KUIS
+        function renderQuizList() {
+            const container = document.getElementById('quiz-list');
+            const empty = document.getElementById('quiz-empty');
+            if(!container) return;
+            if(quizList.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); updateDashboardMetrics(); return; }
+            empty.classList.add('hidden');
+
+            container.innerHTML = quizList.map((quiz, idx) => `
+                <div class="p-5 border rounded-2xl bg-white space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-gray-900 text-sm">${quiz.title}</h4>
+                        <button onclick="deleteQuiz(${idx})" class="text-red-500 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+
+                    ${quiz.fileName && quiz.fileData ? `
+                        <div class="p-2.5 bg-purple-50 border border-purple-100 rounded-xl flex items-center justify-between text-xs text-purple-900">
+                            <span class="font-medium"><i class="fa-solid fa-file-pdf mr-1"></i> \${quiz.fileName}</span>
+                            <a href="${quiz.fileData}" download="${quiz.fileName}" class="px-2.5 py-1 bg-purple-700 text-white rounded-lg text-[11px]">Unduh Berkas Soal</a>
+                        </div>
+                    ` : ''}
+
+                    <div class="space-y-2 text-xs pt-2 border-t">
+                        <p class="font-semibold text-gray-800">1. ${quiz.question1}</p>
+                        <div class="space-y-1 pl-2">
+                            <label class="block cursor-pointer"><input type="radio" name="q_${idx}_1" value="A"> A. ${quiz.optA}</label>
+                            <label class="block cursor-pointer"><input type="radio" name="q_${idx}_1" value="B"> B. ${quiz.optB}</label>
+                        </div>
+                    </div>
+                    <button onclick="submitQuizSession(${idx})" class="px-4 py-2 bg-emerald-700 text-white text-xs font-medium rounded-xl cursor-pointer">Kumpulkan Jawaban</button>
+                </div>
+            `).join('');
+            updateDashboardMetrics();
+        }
+
+        function openAddQuizModal() {
+            document.getElementById('qz-title').value = '';
+            document.getElementById('qz-q1').value = '';
+            document.getElementById('qz-optA').value = '';
+            document.getElementById('qz-optB').value = '';
+            document.getElementById('qz-file').value = '';
+            document.getElementById('quiz-modal').classList.remove('hidden');
+        }
+
+        function closeQuizModal() { document.getElementById('quiz-modal').classList.add('hidden'); }
+
+        async function saveQuizContent() {
+            const title = document.getElementById('qz-title').value.trim();
+            const question1 = document.getElementById('qz-q1').value.trim();
+            const optA = document.getElementById('qz-optA').value.trim();
+            const optB = document.getElementById('qz-optB').value.trim();
+            const fileInput = document.getElementById('qz-file');
+
+            if(!title) { alert('Judul kuis wajib diisi!'); return; }
+
+            let fileName = null;
+            let fileData = null;
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileName = file.name;
+                fileData = await readFileAsBase64(file);
+            }
+
+            quizList.push({ 
+                title, 
+                question1: question1 || 'Pertanyaan uji pemahaman', 
+                optA: optA || 'Pilihan A', 
+                optB: optB || 'Pilihan B', 
+                key: 'B',
+                fileName: fileName || null,
+                fileData: fileData || null
+            });
+
+            localStorage.setItem('pharmacology_quiz', JSON.stringify(quizList));
+            renderQuizList();
+            closeQuizModal();
+        }
+
+        function submitQuizSession(idx) {
+            const quiz = quizList[idx];
+            const checked = document.querySelector(`input[name="q_${idx}_1"]:checked`);
+            let isCorrect = checked && checked.value === quiz.key;
+
+            document.getElementById('res-score').textContent = isCorrect ? '100 / 100' : '0 / 100';
+            document.getElementById('res-correct').textContent = isCorrect ? '1 Soal Benar' : '0 Soal Benar';
+            document.getElementById('quiz-result-bottom').classList.remove('hidden');
+        }
+
+        function deleteQuiz(idx) {
+            quizList.splice(idx, 1);
+            localStorage.setItem('pharmacology_quiz', JSON.stringify(quizList));
+            renderQuizList();
+            document.getElementById('quiz-result-bottom').classList.add('hidden');
+        }
+
+        // TENTANG
+        function loadAboutData() {
+            const about = JSON.parse(localStorage.getItem('pharmacology_about')) || {
+                kelompok: "Farmakologi Kelompok 4",
+                anggota: "Yohanes Alberio Eltiano Mepa - 20250306010\nMarsha Adra Asri - 20250306011\nMildina Chasselda Leksair - 20250306019\nKeysha - 20250306042\nChintya Wulandari - 20250306048",
+                matkul: "Farmakologi - Rekam Medis & Informasi Kesehatan (RMIK)",
+                dosen: "Dr. apt. Tim Dosen Farmakologi, M.Farm.",
+                desc: "Sistem Informasi & Bank Data Obat Farmakologi Kelompok 4."
+            };
+            document.getElementById('view-kelompok').textContent = about.kelompok;
+            document.getElementById('view-matkul').textContent = about.matkul;
+            document.getElementById('view-dosen').textContent = about.dosen;
+            document.getElementById('view-desc').textContent = about.desc;
+            document.getElementById('view-anggota').innerHTML = about.anggota.split('\n').map(a => `<li>${a}</li>`).join('');
+        }
+
+        function enableAboutEdit() {
+            const about = JSON.parse(localStorage.getItem('pharmacology_about')) || {
+                kelompok: "Farmakologi Kelompok 4",
+                anggota: "Yohanes Alberio Eltiano Mepa - 20250306010\nMarsha Adra Asri - 20250306011\nMildina Chasselda Leksair - 20250306019\nKeysha - 20250306042\nChintya Wulandari - 20250306048",
+                matkul: "Farmakologi - Rekam Medis & Informasi Kesehatan (RMIK)",
+                dosen: "Dr. apt. Tim Dosen Farmakologi, M.Farm.",
+                desc: "Sistem Informasi & Bank Data Obat Farmakologi Kelompok 4."
+            };
+            document.getElementById('edit-kelompok').value = about.kelompok;
+            document.getElementById('edit-anggota').value = about.anggota;
+            document.getElementById('edit-matkul').value = about.matkul;
+            document.getElementById('edit-dosen').value = about.dosen;
+            document.getElementById('edit-desc').value = about.desc;
+
+            document.getElementById('about-display-view').classList.add('hidden');
+            document.getElementById('about-edit-form').classList.remove('hidden');
+        }
+
+        function cancelAboutEdit() {
+            document.getElementById('about-display-view').classList.remove('hidden');
+            document.getElementById('about-edit-form').classList.add('hidden');
+        }
+
+        function saveAboutInfo() {
+            const about = {
+                kelompok: document.getElementById('edit-kelompok').value,
+                anggota: document.getElementById('edit-anggota').value,
+                matkul: document.getElementById('edit-matkul').value,
+                dosen: document.getElementById('edit-dosen').value,
+                desc: document.getElementById('edit-desc').value
+            };
+            localStorage.setItem('pharmacology_about', JSON.stringify(about));
+            loadAboutData();
+            cancelAboutEdit();
+            alert('Informasi Tentang berhasil diperbarui.');
+        }
+    </script>
+</body>
+</html>
